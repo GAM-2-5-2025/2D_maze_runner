@@ -1,9 +1,12 @@
-#uvozimo pygame
+#uvozimo knjiznice
 import pygame
+from sys import exit
 
-#pokrecemo igricu, postavljamo rezoluciju W=1366 piksela i H=768 piksela
+#pokretanje igrice, rezolucije i ime prozora
 pygame.init()
 screen=pygame.display.set_mode((1366,768))
+pygame.display.set_caption('2D maze runner')
+clock = pygame.time.Clock()
 
 #ulazimo u beskonačnu petlju koja se može prekinuti samo iznutra
 while True:
@@ -11,7 +14,9 @@ while True:
         #interno zaustavljanje programa
         if event.type == pygame.QUIT:
             pygame.quit()
+            sys.exit()
     
-    #postavimo konstantno azuriranje ekrana
+    #konst. azuriranje ekrana
     pygame.display.update()
+    clock.tick(60)
     
