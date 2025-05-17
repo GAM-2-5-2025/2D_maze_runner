@@ -35,10 +35,13 @@ input_boxes = [
     pygame.Rect(100, 140, inWidth, inHeight)
 ]
 inputs = ["", ""]
-active_box = [False, False]
+active_box = [True, False]
 
 # Namjestanje buttona
-start_button = pygame.Rect(100, 200, 140, 50)
+start_buttons = [
+    pygame.Rect(100, 200, 140, 50),
+    pygame.Rect(100, 260, 140, 50)
+    ]
 difficulty_buttons = [
     pygame.Rect(340, 80, 140, 50),
     pygame.Rect(340, 140, 140, 50),
@@ -46,6 +49,7 @@ difficulty_buttons = [
 ]
 active_difficulty = 1
 active_difficulty_button = [False, True, False]
+name_start_button = ["Play local", "Play online",]
 name_difficulty_button = ["Easy", "Normal", "Hard"]
 
 # Poruka za grešku premalih inputa
@@ -71,10 +75,11 @@ def draw():
         box.w = max(140, text_surface.get_width() + 10)
 
     # Crtanje start buttona
-    pygame.draw.rect(screen, GREEN, start_button)
-    button_text = FONT.render("Start", True, WHITE)
-    text_rect = button_text.get_rect(center=start_button.center)
-    screen.blit(button_text, text_rect)
+    for i, button in enumerate(start_buttons):
+        pygame.draw.rect(screen, GREEN, button)
+        button_text = FONT.render(name_start_button[i], True, WHITE)
+        text_rect = button_text.get_rect(center=button.center)
+        screen.blit(button_text, text_rect)
 
     # Crtanje difficulty buttona
     for i,box in enumerate(difficulty_buttons):
@@ -90,7 +95,7 @@ def draw():
     # Prikaz poruke za grešku
     if error_message:
         error_surface = ERROR_FONT.render(error_message, True, (200, 0, 0))
-        screen.blit(error_surface, (100, 270))
+        screen.blit(error_surface, (340, 270))
 
     pygame.display.flip()
 
@@ -112,7 +117,7 @@ def main():
                     active_box[i] = input_boxes[i].collidepoint(event.pos)
 
                 # Klikanje start gumba
-                if start_button.collidepoint(event.pos):
+                if start_buttons[0].collidepoint(event.pos):
                     try:
                         width = int(inputs[0])
                         height = int(inputs[1])
@@ -123,7 +128,11 @@ def main():
                             game.main2(height, width, active_difficulty)
                     except ValueError:
                         error_message = "Unesite brojeve u oba polja"
+                elif start_buttons[1].collidepoint(event.pos):
+                    error_message = "Ovo još ne radi |:"
 
+                
+                
                 # Odabir difficultyja
                 for i in range(len(difficulty_buttons)):
                     if difficulty_buttons[i].collidepoint(event.pos):
