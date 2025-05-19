@@ -1,16 +1,21 @@
-#uvozimo knjiznice
+# Uvozimo knjiznice
 import pygame
 import sys
 import game
 
-#pokretanje igrice, rezolucije, ime prozora, pod
+# Pokretanje igrice, rezolucije, ime prozora, pod
 pygame.init()
 
 WIDTH, HEIGHT = 1366, 1366
-screen=pygame.display.set_mode((WIDTH,HEIGHT))
+screen=pygame.display.set_mode((WIDTH, HEIGHT), pygame.RESIZABLE)
 pygame.display.set_caption('2D maze runner - home')
 
-# Boje
+# Za pravilno skaliranje veličina
+sreen_x, screen_y = screen.get_size()
+
+fullscreen = False
+
+# Boje osnovne za koristit
 WHITE = (255, 255, 255)
 GRAY = (200, 200, 200)
 BLUE = (100, 100, 255)
@@ -52,12 +57,14 @@ active_difficulty_button = [False, True, False]
 name_start_button = ["Play local", "Play online",]
 name_difficulty_button = ["Easy", "Normal", "Hard"]
 
-# Poruka za grešku premalih inputa
+# Poruka za grešku premalih inputa i ostalog
 error_message = ""
 
 
 def draw():
     screen.fill(WHITE)
+
+    middle = screen.get_rect().center
 
     labels = ["Width", "Height"]
     
@@ -102,6 +109,7 @@ def draw():
 def main():
     global error_message
     global active_difficulty
+    global fullscreen
     
     clock = pygame.time.Clock()
     
@@ -144,6 +152,12 @@ def main():
                             
             #Tipkanje u input boxove
             if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_F11:
+                    fullscreen = not fullscreen
+                    if fullscreen:
+                        screen = pygame.display.set_mode((0,0), pygame.FULLSCREEN)
+                    else:
+                        screen = pygame.display.set_mode((WIDTH,HEIGHT), pygame.RESIZABLE)
                 for i in range(len(input_boxes)):
                     if active_box[i]:
                         if event.key == pygame.K_BACKSPACE:

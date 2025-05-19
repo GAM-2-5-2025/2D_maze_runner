@@ -21,7 +21,7 @@ FONT = pygame.font.Font(None, 36) #Default
 
 # Namjestanje buttona
 buttons = [pygame.Rect(20, 20, 140, 50), pygame.Rect(180, 20, 140, 50)]
-button_lables = ["Back", "Reset"]
+button_lables = ["Back", "Restart"]
 button_colors = [main.RED, main.BLUE]
 restart_btn = pygame.Rect(WIDTH // 2 - 100, HEIGHT // 2 - 50, 200, 60)
 home_btn = pygame.Rect(WIDTH // 2 - 100, HEIGHT // 2 + 30, 200, 60)
@@ -29,8 +29,8 @@ home_btn = pygame.Rect(WIDTH // 2 - 100, HEIGHT // 2 + 30, 200, 60)
 # Namjestanje labirinta
 brRedaka = 5
 brStupaca = 5
-difficulty = 1
-state = "maze"
+difficulty = 1   # Mijenja težinu labirinta i količiun zombija
+state = "maze"   # Jesi li trenutni živ, mrtav, ili pobijedio
 clock = None
 start_delay_active = True
 start_time = pygame.time.get_ticks()
@@ -45,30 +45,54 @@ for i in range(0,16):
 zombie_png = pygame.image.load(os.path.join(os.path.dirname(__file__), "zombi.png")).convert_alpha()
 player_png = pygame.image.load(os.path.join(os.path.dirname(__file__), "jajko.png")).convert_alpha()
 floor_png = pygame.image.load(os.path.join(os.path.dirname(__file__), "floor2.png")).convert_alpha()
+door_png = pygame.image.load(os.path.join(os.path.dirname(__file__), "door.png")).convert_alpha()
 
 # Mijenjanje veličina tekstura
 floor_png = pygame.transform.scale(floor_png, (gridSize, gridSize))
 zombie_png = pygame.transform.scale(zombie_png, (gridSize * 60/64, gridSize * 86/64))
 player_png = pygame.transform.scale(player_png, (gridSize * 45/64, gridSize * 90/64))
+door_png = pygame.transform.scale(door_png, (gridSize, gridSize))
 
 # Namjestanje playera
-player_start = [pygame.Vector2(1,1), None, pygame.time.get_ticks(), pygame.Rect(100, 80, gridSize, gridSize)]
+player_Rect = pygame.Rect(0, 0, gridSize * 32 / 64, gridSize * 40 / 64) # Hitbox playera
+player_Rect.center = (100 + gridSize * 1.5, 80 + gridSize * 1.5)
+player_start = [pygame.Vector2(1,1), None, pygame.time.get_ticks(), player_Rect.copy()]
 inputs = []
-player = player_start.copy() # Player objekt (trenutna poz, trenutno micanje, vrijeme proslog micanja, input za smjer kretanja)
+player = copy.deepcopy(player_start) # Player objekt (trenutna poz, trenutno micanje, vrijeme proslog micanja, input za smjer kretanja)
 
 # Namjestanje zombija
+zombies_Rect = pygame.Rect(0, 0, gridSize * 32 / 64, gridSize * 40 / 64) # Hitbox zombija
 zombies = [] # Sprema poziciju svih zombija i podatke o trenutnom kretanju (animacija)
 maze_zombies_start = [[]]
 maze_zombies = [[]]
 zombies_start = []
 
+# Namjestanje izlaza (vrata)
+door_pos = pygame.Vector2(4,4)
+door_rect = pygame.Rect(0,0, gridSize * 32 / 64, gridSize * 32 / 64)
+door_rect_center = (100 + 4.5 * gridSize, 80 + 4.5 * gridSize)
+
 # Ostale postavke
 start_delay = 2
-input_delay_time = 0.2
+input_delay_time = 0.05
 death_messages = ["Umro si ):", "Umro si (:", "Skill issue", "Nastavi igrat mozda postanes bolji",
                   "Crknuo si", "Krcnuo si", "You've been hit by... You've been struck by... A ZOMBIE!"
                  ]
-# Funkcija za nacrtat text i gumb ili input box
+win_messages = ["Ti si tako dobar u ovoj igrici O:", "Ti si pravi maher za ovo (;",
+                "Ovo je svetska razina gaminga!", "Bolji si u igranju od Ninje!",
+                "Uspio si (:", "Uspjela si (;", "GG ez, jelda?", "Tko je najbolji? TI si majbolji!",
+                "Ma, posrećilo ti se", "Prešao si igricu! Sada probaj još jednom, ali brže.",
+                "Poštovani igraču, moje iskrene čestitke na prelasku ove igrice *gives you a handshake*",
+                "Nije loše, nije loše... Može bolje, al nije loše...", "Iskreno, presporo si prešao.",
+                "I, šta misliš o igrici? Jel dobra? ostavi neki dobar rejting pls uwu",
+                "Braavoooo! Čestitke i pohvale!! (Nije kao da je super lagano, al' ok)",
+                "Dobar posao :D", "Prešao si igricu. Sada si vrlo kul osoba :D",
+                "Čestitke! Prešao si - oh, da, možda nisi Hrvat... Congratulations! You have beaten the game!",
+                "Tako je! Pokaži tim zombijima tko je gazda!", "Zombie?? More like: Zom-bye bye (Kužiš jer si kao pobijedio i otišao ća pa kao govoriš bye bye)"
+                ]
+
+
+# Funkcija za nacrtat text u gumbu ili input boxu
 def draw_text(text, rect, normal_color, hover_color, hover=False):
     color = hover_color if hover else normal_color
     pygame.draw.rect(screen, color, rect, border_radius=10)
@@ -79,6 +103,7 @@ def draw_text(text, rect, normal_color, hover_color, hover=False):
 
 # Stvaranje labirinta (0 su prazno, 1 su zidovi), zasad jos nije random generirano
 def generateMaze(stupac, redak):
+    global door_pos, door_rect
 
     # Namještavanje težine labirinta (koliko loopova ima u labirintu)
     extra_loops = 0
@@ -99,6 +124,7 @@ def generateMaze(stupac, redak):
     stack = [(start_x, start_y)]
     maze[start_x][start_y] = -1
 
+    # Pomoću DFS-a radimo rupe u zidovima
     while stack:
         x, y = stack[-1]
         directions = [(0, 2), (2, 0), (0, -2), (-2, 0)]
@@ -108,6 +134,8 @@ def generateMaze(stupac, redak):
         for dx, dy in directions:
             nx, ny = x + dx, y + dy
             if 0 < nx < redak and 0 < ny < stupac and maze[nx][ny] == 0:
+                door_pos = pygame.Vector2(nx,ny)
+                door_rect.center = (100 + (ny + 0.5) * gridSize, 80 + (nx + 0.5) * gridSize)
                 mx, my = x + dx // 2, y + dy // 2
                 maze[mx][my] = -1
                 maze[nx][ny] = -1
@@ -171,7 +199,8 @@ def spawn_zombies():
 
         if maze[x][y] == -1 and maze_zombies_start[x][y] == 0 and pygame.Vector2(x,y) != player_start[0]:
             added += 1
-            zombies_pos.append([pygame.Vector2(x,y), None, pygame.time.get_ticks(), pygame.Rect(100 + gridSize * x, 80 + gridSize * y, gridSize, gridSize), pygame.Vector2(-1,-1)]) # Stvoren novi zombi (pozicija, trenutno micanje, vrijeme_proslog_micanja, prosla_pozicija)
+            zombies_pos.append([pygame.Vector2(x,y), None, pygame.time.get_ticks(), zombies_Rect.copy(), pygame.Vector2(-1,-1)]) # Stvoren novi zombi (pozicija, trenutno micanje, vrijeme_proslog_micanja, prosla_pozicija)
+            zombies_pos[-1][3].center = (100 + (y + 0.5) * gridSize, 80 + (x + 0.5) * gridSize)
             maze_zombies_start[x][y] = 1
         attempts += 1
 
@@ -263,10 +292,17 @@ def draw():
         for j in range(brStupaca):
             screen.blit(walls_png[maze[i][j]], (100 + gridSize * j, 80 + gridSize * i)) if maze[i][j] != -1 else screen.blit(floor_png, (100 + gridSize * j, 80 + gridSize * i))
 
+    # Crtanje vrata
+    screen.blit(door_png, (100 + door_pos.y * gridSize, 80 + door_pos.x * gridSize))
+  
     # Crtanje objekata
     for entity in entities:
         screen.blit(entity[1], (100 + gridSize * entity[0][0].y, 80 + gridSize * entity[0][0].x - 40))
-    
+
+    # Crtanje hitboxova za debugging
+    #for entity in entities:
+    #    pygame.draw.rect(screen, (main.RED), entity[0][3])
+
     # Crtanje buttona
     for i in range(len(buttons)):
         pygame.draw.rect(screen, button_colors[i], buttons[i])
@@ -277,10 +313,11 @@ def draw():
     pygame.display.flip()
 
 
+# Resetiranje labirinta i svih gluposti
 def restart():
     global player, zombies, maze_zombies, start_delay_active, start_time, state, inputs
     
-    player = player_start.copy()
+    player = copy.deepcopy(player_start)
     zombies = copy.deepcopy(zombies_start)
     maze_zombies = copy.deepcopy(maze_zombies_start)
     start_delay_active = True
@@ -288,7 +325,8 @@ def restart():
     state = "maze"
     inputs = []
 
-    
+
+# Funkcija za otvaranje UI-a za death screen  
 def death_screen():
     global clock, state
 
@@ -319,6 +357,56 @@ def death_screen():
 
         # Naslov
         title = main.FONT.render(death_message, True, main.WHITE)
+        title_rect = title.get_rect(center=(WIDTH // 2, HEIGHT // 2 - 120))
+        screen.blit(title, title_rect)
+
+        # Gumbići
+        mouse_pos = pygame.mouse.get_pos()
+        draw_text("Restart", restart_btn, (51, 153, 255), (0, 102, 204), restart_btn.collidepoint(mouse_pos))
+        draw_text("Back to home", home_btn, (255, 51, 51), (204, 0, 0), home_btn.collidepoint(mouse_pos))
+
+        pygame.display.flip()
+        clock.tick(30)
+        
+
+# Funkcija za otvaranje UI-a za win screen
+def win_screen(start_time):
+    global clock, state
+
+    state = "win"
+
+    win_message = random.choice(win_messages)
+    time_played = round((pygame.time.get_ticks() - start_time) / 1000, 2)
+    time_message = "The time it took: " + str(time_played) + " seconds."
+    
+    while state == "win":
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+
+            if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                mouse_pos = pygame.mouse.get_pos()
+                
+                if restart_btn.collidepoint(mouse_pos):
+                    print("Restart the game!")
+                    return "restart"
+                if home_btn.collidepoint(mouse_pos):
+                    print("Back to home screen!")
+                    return "home"
+            
+        # Prozirna pozadina
+        overlay = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
+        overlay.fill((50, 50, 50, 60))
+        screen.blit(overlay, (0,0))
+
+        # Vrijeme igranja
+        time_played = main.FONT.render(time_message, True, main.WHITE)
+        time_rect = time_played.get_rect(center=(WIDTH // 2, HEIGHT // 2 - 200))
+        screen.blit(time_played, time_rect)
+        
+        # Naslov
+        title = main.FONT.render(win_message, True, main.WHITE)
         title_rect = title.get_rect(center=(WIDTH // 2, HEIGHT // 2 - 120))
         screen.blit(title, title_rect)
 
@@ -372,14 +460,12 @@ def main2(redak, stupac, active_difficulty):
                 for i in range(len(buttons)):
                     if buttons[i].collidepoint(event.pos):
                         if(button_lables[i]=="Back"):
+                            print("Back to home screen!")
+                            restart()
                             return
-                        elif(button_lables[i]=="Reset"):
-                            player = player_start.copy()
-                            zombies = copy.deepcopy(zombies_start)
-                            maze_zombies = copy.deepcopy(maze_zombies_start)
-                            start_delay_active = True
-                            start_time = current_time
-                            
+                        elif(button_lables[i]=="Restart"):
+                            restart()
+                            print("Restart the game!")
 
             # Kretanje igrača tako da se tipke mogu držat, i ako je pritisnuto više tipka uzima se ona novija
             elif event.type == pygame.KEYDOWN:
@@ -387,19 +473,35 @@ def main2(redak, stupac, active_difficulty):
                 elif event.key == pygame.K_LEFT or event.key == pygame.K_a: inputs.append(1)
                 elif event.key == pygame.K_DOWN or event.key == pygame.K_s: inputs.append(2)
                 elif event.key == pygame.K_RIGHT or event.key == pygame.K_d: inputs.append(3)
+
+                # Privremena tipka za ubit se
                 elif event.key == pygame.K_k:
                     action = death_screen()
                     if(action == "restart"):
                         restart()
+                        print("Restart the game!")
                     elif(action == "home"):
+                        print("Back to home screen!")
+                        restart()
+                        return main.main()
+                    
+                # Privremena tipka za pobijedu
+                elif event.key == pygame.K_j:
+                    action = win_screen(start_time)
+                    if(action == "restart"):
+                        restart()
+                        print("Restart the game!")
+                    elif(action == "home"):
+                        print("Back to home screen!")
+                        restart()
                         return main.main()
 
             # Detekcija otpuštanja tipke da znamo ako se tipka drži
             elif event.type == pygame.KEYUP:
-                if event.key == pygame.K_UP or event.key == pygame.K_w: input_delay[0] = current_time
-                elif event.key == pygame.K_LEFT or event.key == pygame.K_a: input_delay[1] = current_time
-                elif event.key == pygame.K_DOWN or event.key == pygame.K_s: input_delay[2] = current_time
-                elif event.key == pygame.K_RIGHT or event.key == pygame.K_d: input_delay[3] = current_time
+                if (event.key == pygame.K_UP or event.key == pygame.K_w) and 0 in inputs: input_delay[0] = current_time
+                elif (event.key == pygame.K_LEFT or event.key == pygame.K_a) and 1 in inputs: input_delay[1] = current_time
+                elif (event.key == pygame.K_DOWN or event.key == pygame.K_s) and 2 in inputs: input_delay[2] = current_time
+                elif (event.key == pygame.K_RIGHT or event.key == pygame.K_d) and 3 in inputs: input_delay[3] = current_time
 
         # Uračunava input delay u otpuštanje tipke
         for i,last in enumerate(input_delay):
@@ -422,8 +524,7 @@ def main2(redak, stupac, active_difficulty):
         if player[1]:
             try:
                 player[0] = next(player[1])
-                player[3].x = 100 + player[0].x * gridSize
-                player[3].y = 80 + player[0].y * gridSize
+                player[3].center = (100 + (player[0].y + 0.5) * gridSize, 80 + (player[0].x + 0.5) * gridSize)
             except StopIteration:
                 player[1] = None
 
@@ -444,8 +545,7 @@ def main2(redak, stupac, active_difficulty):
             if zombie[1]:
                 try:
                     zombie[0] = next(zombie[1])
-                    zombie[3].x = 100 + zombie[0].x * gridSize
-                    zombie[3].y = 80 + zombie[0].y * gridSize
+                    zombie[3].center = (100 + (zombie[0].y + 0.5) * gridSize, 80 + (zombie[0].x + 0.5) * gridSize)
                 except StopIteration:
                     zombie[1] = None
 
@@ -454,9 +554,20 @@ def main2(redak, stupac, active_difficulty):
                 action = death_screen()
                 if(action == "restart"):
                     restart()
+                    print("Restart the game!")
                 elif(action == "home"):
+                    restart()
                     return
-        
+
+        # Provjera collisiona igrača i exita
+        if (player[1]) and player[3].colliderect(door_rect):
+            action = win_screen(start_time)
+            if(action == "restart"):
+                restart()
+                print("Restart the game!")
+            elif(action == "home"):
+                restart()
+                return
         draw()
         clock.tick(30)
 
