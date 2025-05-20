@@ -237,7 +237,7 @@ def move_player():
         target_pos = (player[0] + direction)
 
         if(maze[int(target_pos.x)][int(target_pos.y)] == -1):
-            player[1] = ease_in_out(player[0].copy(), target_pos, 0.5)
+            player[1] = ease_in_out(player[0].copy(), target_pos, 0.25)
             break
 
 
@@ -524,7 +524,7 @@ def main2(redak, stupac, active_difficulty):
                     player[2] = current_time
                     move_player()
                     start_delay_active = False
-        elif inputs and (current_time - player[2]) / 1000 >= 0.5 + 0.1:
+        elif inputs and (current_time - player[2]) / 1000 >= 0.25 + 0.1:
             player[2] = current_time
             move_player()
 
