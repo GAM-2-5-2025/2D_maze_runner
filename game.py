@@ -6,18 +6,22 @@ import random
 import math
 import copy
 import main
+import camera
 
 
 # Pokretanje igrice, rezolucije, ime prozora, pod
 pygame.init()
 
 WIDTH, HEIGHT = main.WIDTH, main.HEIGHT
-screen=pygame.display.set_mode((WIDTH,HEIGHT))
+screen = main.screen
 pygame.display.set_caption('2D maze runner - home')
 
+# Za pravilno skaliranje veličina
+screen_WIDTH, screen_HEIGHT = screen.get_size()
+camera = main.camera
 
 # Fontovi
-FONT = pygame.font.Font(None, 36) #Default
+FONT = main.FONT
 
 # Namjestanje buttona
 buttons = [pygame.Rect(20, 20, 140, 50), pygame.Rect(180, 20, 140, 50)]
@@ -290,14 +294,14 @@ def draw():
     # Crtanje labirinta
     for i in range(brRedaka):
         for j in range(brStupaca):
-            screen.blit(walls_png[maze[i][j]], (100 + gridSize * j, 80 + gridSize * i)) if maze[i][j] != -1 else screen.blit(floor_png, (100 + gridSize * j, 80 + gridSize * i))
+            screen.blit(walls_png[maze[i][j]], camera.apply(((100 + gridSize * j, 80 + gridSize * i)))) if maze[i][j] != -1 else screen.blit(floor_png, camera.apply((100 + gridSize * j, 80 + gridSize * i)))
 
     # Crtanje vrata
-    screen.blit(door_png, (100 + door_pos.y * gridSize, 80 + door_pos.x * gridSize))
+    screen.blit(door_png, camera.apply((100 + door_pos.y * gridSize, 80 + door_pos.x * gridSize)))
   
     # Crtanje objekata
     for entity in entities:
-        screen.blit(entity[1], (100 + gridSize * entity[0][0].y, 80 + gridSize * entity[0][0].x - 40))
+        screen.blit(entity[1], camera.apply((100 + gridSize * entity[0][0].y, 80 + gridSize * entity[0][0].x - 40)))
 
     # Crtanje hitboxova za debugging
     #for entity in entities:
@@ -425,7 +429,7 @@ def main2(redak, stupac, active_difficulty):
     global player, zombies, zombies_start, maze_zombies, inputs, state
     global clock
     
-    # Ensure dimensions are odd because it doesn't work otherwise (jer nez drugi algoritam za labi)
+    # Dimenzije moraju bit neparne za algoritam (jer nez drugi algoritam za labirint)
     if stupac % 2 == 0:
         stupac += 1
     if redak % 2 == 0:
@@ -503,6 +507,10 @@ def main2(redak, stupac, active_difficulty):
                 elif (event.key == pygame.K_DOWN or event.key == pygame.K_s) and 2 in inputs: input_delay[2] = current_time
                 elif (event.key == pygame.K_RIGHT or event.key == pygame.K_d) and 3 in inputs: input_delay[3] = current_time
 
+            # Mijenjanje veličine ekrana
+            elif event.type == pygame.VIDEORESIZE:
+                main.resize_screen(screen.get_size()[0], screen.get_size()[1], False)
+            
         # Uračunava input delay u otpuštanje tipke
         for i,last in enumerate(input_delay):
             if last != None:

@@ -2,18 +2,27 @@
 import pygame
 import sys
 import game
+from camera import Camera
 
 # Pokretanje igrice, rezolucije, ime prozora, pod
 pygame.init()
 
-WIDTH, HEIGHT = 1366, 1366
+WIDTH, HEIGHT = 1920, 1080
 screen=pygame.display.set_mode((WIDTH, HEIGHT), pygame.RESIZABLE)
 pygame.display.set_caption('2D maze runner - home')
 
 # Za pravilno skaliranje veličina
-sreen_x, screen_y = screen.get_size()
+screen_WIDTH, screen_HEIGHT = screen.get_size()
+camera = Camera(scale=max(screen_WIDTH / WIDTH, screen_HEIGHT / HEIGHT))
 
 fullscreen = False
+
+# Fontovi
+fonts = {"FONT": (None, 36),
+         "ERROR_FONT": (None, 36)
+    }
+FONT = camera.applyFont(fonts["FONT"][0], fonts["FONT"][1])
+ERROR_FONT = camera.applyFont(fonts["ERROR_FONT"][0], fonts["ERROR_FONT"][1])
 
 # Boje osnovne za koristit
 WHITE = (255, 255, 255)
@@ -24,13 +33,6 @@ GREEN = (0, 200, 0)
 DARK_GREEN = (0, 150, 0)
 DARK_BLUE = (0, 0, 153)
 RED = (255, 0, 0)
-
-# Fontovi
-FONT = pygame.font.Font(None, 36) # Default
-ERROR_FONT = pygame.font.Font(None, 32) # Pogreške
-
-#test_pod = pygame.Surface((1366,768))
-#test_pod.fill('bisque2')
 
 # Namjestanje input boxesa
 inWidth = 140
@@ -61,7 +63,26 @@ name_difficulty_button = ["Easy", "Normal", "Hard"]
 error_message = ""
 
 
+def resize_screen(x, y, is_fullscreen):
+    global fonts, FONT, ERROR_FONT
+    
+    if is_fullscreen:
+        screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
+        screen_WIDTH, screen_HEIGHT = screen.get_size()
+    else:
+        screen_WIDTH, screen_HEIGHT = x, y
+        screen = pygame.display.set_mode((x, y), pygame.RESIZABLE)
+
+    camera.scale = max(screen_WIDTH / WIDTH, screen_HEIGHT / HEIGHT)
+
+    # Namjestavanje nove velicine fontova jer su glupi i ne mogu drugacije ):
+    FONT = camera.applyFont(fonts["FONT"][0], fonts["FONT"][1])
+    ERROR_FONT = camera.applyFont(fonts["ERROR_FONT"][0], fonts["ERROR_FONT"][1])
+    
+
+
 def draw():
+    
     screen.fill(WHITE)
 
     middle = screen.get_rect().center
@@ -70,7 +91,8 @@ def draw():
     
     # Crtanje input boxova
     for i, box in enumerate(input_boxes):
-        # Crtanje texta
+        # Crtanje texta+
+        box = camera.apply(box)
         label_surface = FONT.render(labels[i], True, BLACK)
         screen.blit(label_surface, (box.x - label_surface.get_width() - 10, box.y + 5))
 
@@ -83,6 +105,7 @@ def draw():
 
     # Crtanje start buttona
     for i, button in enumerate(start_buttons):
+        button = camera.apply(button)
         pygame.draw.rect(screen, GREEN, button)
         button_text = FONT.render(name_start_button[i], True, WHITE)
         text_rect = button_text.get_rect(center=button.center)
@@ -90,6 +113,7 @@ def draw():
 
     # Crtanje difficulty buttona
     for i,box in enumerate(difficulty_buttons):
+        box = camera.apply(box)
         if i == active_difficulty:
             pygame.draw.rect(screen, BLUE, box)
             button_text = FONT.render(name_difficulty_button[i], True, DARK_BLUE)
@@ -102,8 +126,8 @@ def draw():
     # Prikaz poruke za grešku
     if error_message:
         error_surface = ERROR_FONT.render(error_message, True, (200, 0, 0))
-        screen.blit(error_surface, (340, 270))
-
+        screen.blit(error_surface, camera.apply((340, 270)))
+    
     pygame.display.flip()
 
 def main():
@@ -120,12 +144,15 @@ def main():
                 sys.exit()
 
             if event.type == pygame.MOUSEBUTTONDOWN:
+                
+                mouse_pos = camera.unscale(event.pos)
+                
                 # Aktivacija input boxova
                 for i in range(len(input_boxes)):
-                    active_box[i] = input_boxes[i].collidepoint(event.pos)
+                    active_box[i] = input_boxes[i].collidepoint(mouse_pos)
 
                 # Klikanje start gumba
-                if start_buttons[0].collidepoint(event.pos):
+                if start_buttons[0].collidepoint(mouse_pos):
                     try:
                         width = int(inputs[0])
                         height = int(inputs[1])
@@ -136,35 +163,44 @@ def main():
                             game.main2(height, width, active_difficulty)
                     except ValueError:
                         error_message = "Unesite brojeve u oba polja"
-                elif start_buttons[1].collidepoint(event.pos):
+                elif start_buttons[1].collidepoint(mouse_pos):
                     error_message = "Ovo još ne radi |:"
 
                 
                 
                 # Odabir difficultyja
                 for i in range(len(difficulty_buttons)):
-                    if difficulty_buttons[i].collidepoint(event.pos):
+                    if difficulty_buttons[i].collidepoint(mouse_pos):
                         active_difficulty_button[active_difficulty] = False
                         active_difficulty = i
                         active_difficulty_button[active_difficulty] = True
                         
-                        
-                            
+                                                 
             #Tipkanje u input boxove
             if event.type == pygame.KEYDOWN:
+                
                 if event.key == pygame.K_F11:
+                    
                     fullscreen = not fullscreen
+                    
                     if fullscreen:
-                        screen = pygame.display.set_mode((0,0), pygame.FULLSCREEN)
+                        resize_screen(0, 0, True)
                     else:
-                        screen = pygame.display.set_mode((WIDTH,HEIGHT), pygame.RESIZABLE)
+                        resize_screen(WIDTH, HEIGHT, False)
+                        
                 for i in range(len(input_boxes)):
                     if active_box[i]:
                         if event.key == pygame.K_BACKSPACE:
                             inputs[i] = inputs[i][:-1]
                         elif event.unicode.isdigit():
                             inputs[i] += event.unicode
+
+
+            # Mijenjanje veličine ekrana
+            elif event.type == pygame.VIDEORESIZE:
+                resize_screen(screen.get_size()[0], screen.get_size()[1], False)
         
+
         draw()
         clock.tick(30)
 
