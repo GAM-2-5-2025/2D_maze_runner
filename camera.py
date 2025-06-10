@@ -26,6 +26,9 @@ class Camera:
 
         elif isinstance(klasa, pygame.Vector2):
             return klasa * self.scale
+
+        elif isinstance(klasa, pygame.Surface):
+            return pygame.transform.scale(klasa, (self.apply(klasa.get_size()[0])+1, self.apply(klasa.get_size()[1])+1))
         
         else:
             raise TypeError("Unsupported type for camera.apply")
