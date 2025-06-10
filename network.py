@@ -1,32 +1,26 @@
 import socket
 
-
-def get_local_ip():
-
-    try:
-        
-        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
-            s.connect(('8.8.8.8', 80))
-            local_ip = s.getsockname()[0]
-        return local_ip
-    
-    except Exception as e:
-        return "Error: " + e
-
+password = "banana"
 
 class Network:
     def __init__(self):
         self.client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.server = get_local_ip()
+        self.server = "192.168.1.14"
         self.port = 5555
         self.addr = (self.server, self.port)
-        self.id = self.connect()
-        print(self.id)
+        self.pos = self.connect()
+
+    def getPos(self):
+        return self.pos
 
     def connect(self):
         try:
             self.client.connect(self.addr)
-            return self.client.recv(2048).decode()  
+            if self.client.recv(2048).decode() == password:
+                return "Connected"
+            else:
+                self.client.close()
+                return "Wrong password"
         except:
             pass
 
@@ -36,6 +30,4 @@ class Network:
             return self.client.recv(2048).decode()
         except socket.error as e:
             print(e)
-            
 
-n = Network()
