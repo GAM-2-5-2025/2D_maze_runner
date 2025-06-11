@@ -8,6 +8,7 @@ import copy
 import main
 import camera
 from entities import *
+from collections import deque
 
 
 # Pokretanje igrice, rezolucije, ime prozora, pod
@@ -66,11 +67,44 @@ zombie_png = [
     pygame.image.load(os.path.join(os.path.dirname(__file__), "idle\\DESNO.png")).convert_alpha()
     ]
 
+smarter_png = [
+    pygame.image.load(os.path.join(os.path.dirname(__file__), "idle\\SMARTER_U.png")).convert_alpha(),
+    pygame.image.load(os.path.join(os.path.dirname(__file__), "idle\\SMARTER_L.png")).convert_alpha(),
+    pygame.image.load(os.path.join(os.path.dirname(__file__), "idle\\SMARTER_D.png")).convert_alpha(),
+    pygame.image.load(os.path.join(os.path.dirname(__file__), "idle\\SMARTER_R.png")).convert_alpha()
+    ]
+brain_png = [
+    pygame.image.load(os.path.join(os.path.dirname(__file__), "idle\\BRAIN_U.png")).convert_alpha(),
+    pygame.image.load(os.path.join(os.path.dirname(__file__), "idle\\BRAIN_L.png")).convert_alpha(),
+    pygame.image.load(os.path.join(os.path.dirname(__file__), "idle\\BRAIN_D.png")).convert_alpha(),
+    pygame.image.load(os.path.join(os.path.dirname(__file__), "idle\\BRAIN_R.png")).convert_alpha()
+    ]
+
 player_png = [
-    pygame.image.load(os.path.join(os.path.dirname(__file__), "idle\\NAPRIJED_JAJKO.png")).convert_alpha(),
-    pygame.image.load(os.path.join(os.path.dirname(__file__), "idle\\NAPRIJED_JAJKO.png")).convert_alpha(),
-    pygame.image.load(os.path.join(os.path.dirname(__file__), "idle\\NAPRIJED_JAJKO.png")).convert_alpha(),
-    pygame.image.load(os.path.join(os.path.dirname(__file__), "idle\\NAPRIJED_JAJKO.png")).convert_alpha()
+    [
+    pygame.image.load(os.path.join(os.path.dirname(__file__), "idle\\JAJKO_U1.png")).convert_alpha(),
+    pygame.image.load(os.path.join(os.path.dirname(__file__), "idle\\JAJKO_U2.png")).convert_alpha(),
+    pygame.image.load(os.path.join(os.path.dirname(__file__), "idle\\JAJKO_U3.png")).convert_alpha(),
+    pygame.image.load(os.path.join(os.path.dirname(__file__), "idle\\JAJKO_U4.png")).convert_alpha()
+    ],
+    [
+    pygame.image.load(os.path.join(os.path.dirname(__file__), "idle\\JAJKO_L1.png")).convert_alpha(),
+    pygame.image.load(os.path.join(os.path.dirname(__file__), "idle\\JAJKO_L2.png")).convert_alpha(),
+    pygame.image.load(os.path.join(os.path.dirname(__file__), "idle\\JAJKO_L3.png")).convert_alpha(),
+    pygame.image.load(os.path.join(os.path.dirname(__file__), "idle\\JAJKO_L4.png")).convert_alpha()
+    ],
+    [
+    pygame.image.load(os.path.join(os.path.dirname(__file__), "idle\\JAJKO_D1.png")).convert_alpha(),
+    pygame.image.load(os.path.join(os.path.dirname(__file__), "idle\\JAJKO_D2.png")).convert_alpha(),
+    pygame.image.load(os.path.join(os.path.dirname(__file__), "idle\\JAJKO_D3.png")).convert_alpha(),
+    pygame.image.load(os.path.join(os.path.dirname(__file__), "idle\\JAJKO_D4.png")).convert_alpha()
+    ],
+    [
+    pygame.image.load(os.path.join(os.path.dirname(__file__), "idle\\JAJKO_R1.png")).convert_alpha(),
+    pygame.image.load(os.path.join(os.path.dirname(__file__), "idle\\JAJKO_R2.png")).convert_alpha(),
+    pygame.image.load(os.path.join(os.path.dirname(__file__), "idle\\JAJKO_R3.png")).convert_alpha(),
+    pygame.image.load(os.path.join(os.path.dirname(__file__), "idle\\JAJKO_R4.png")).convert_alpha()
+    ]
     ]
 
 floor_png = pygame.image.load(os.path.join(os.path.dirname(__file__), "floor2.png")).convert_alpha()
@@ -81,8 +115,11 @@ no_zombies2_png = pygame.image.load(os.path.join(os.path.dirname(__file__), "no_
 
 # Mijenjanje veličina tekstura
 floor_png = pygame.transform.scale(floor_png, (gridSize, gridSize))
-for i in range(len(zombie_png)): zombie_png[i] = pygame.transform.scale(zombie_png[i], (gridSize * 60/64, gridSize * 86/64))
-for i in range(len(player_png)): player_png[i] = pygame.transform.scale(player_png[i], (gridSize * 45/64, gridSize * 90/64))
+for i in range(len(zombie_png)): zombie_png[i] = pygame.transform.scale(zombie_png[i], (gridSize * 64/64, gridSize * 90/64))
+for i in range(len(smarter_png)): smarter_png[i] = pygame.transform.scale(smarter_png[i], (gridSize * 64/64, gridSize * 90/64))
+for i in range(len(brain_png)): brain_png[i] = pygame.transform.scale(brain_png[i], (gridSize * 64/64, gridSize * 90/64))
+for i in range(4):
+    for j in range(4): player_png[i][j] = pygame.transform.scale(player_png[i][j], (gridSize * 88/64, gridSize * 124/64))
 door_png = pygame.transform.scale(door_png, (gridSize, gridSize))
 no_zombies_png = pygame.transform.scale(no_zombies_png, (gridSize * 74/64, gridSize * 128/64))
 no_zombies2_png = pygame.transform.scale(no_zombies2_png, (gridSize * 106/64, gridSize * 128/64))
@@ -108,6 +145,11 @@ cam_pos = pygame.Vector2(4,4)
 door_pos = pygame.Vector2(4,4)
 door_rect = pygame.Rect(0,0, gridSize * 32 / 64, gridSize * 32 / 64)
 door_rect_center = (4.5 * gridSize, 4.5 * gridSize)
+
+# Player WALLPUNCH
+wallpunch_empty = pygame.Rect(1850, 100, 50, 600)
+last_wallpunch = -settings.wallpunch_time * 1000
+
 
 # Ostale postavke
 start_delay = 2
@@ -136,6 +178,39 @@ def draw_text(text, rect, normal_color, hover_color, hover=False):
     text_surf = main.FONT.render(text, True, main.WHITE)
     text_rect = text_surf.get_rect(center=rect.center)
     screen.blit(text_surf, text_rect)
+
+def bfs(start, end):
+    q = deque()
+    q.append((start, -1))
+    
+    bio = []
+    for i in range(0, brRedaka):
+        bio.append([])
+        for j in range(0,brStupaca):
+            bio[i].append(0)
+
+    bio[int(start.y)][int(start.x)] = 1
+
+    while q:
+        pos, temp = q.popleft()
+        r,s = int(pos.y), int(pos.x)
+
+        if(pos == end):
+            return temp
+        
+        for j,i in enumerate(directions):
+            x = int(r + i.y)
+            y = int(s + i.x)
+            if (0 <= x < brRedaka and 0 <= y < brStupaca):
+                if maze[x][y] == -1 and bio[x][y] == 0:
+                    bio[x][y] = 1
+                    if temp == -1:
+                        q.append((pygame.Vector2(y,x), j))
+                    else:
+                        q.append((pygame.Vector2(y,x), temp))
+
+    return -1
+        
 
 
 # Stvaranje labirinta (0 su prazno, 1 su zidovi), zasad jos nije random generirano
@@ -219,6 +294,8 @@ def spawn_zombies():
 
     zombies2 = []
     maze_zombies_start = [[0 for _ in range(brStupaca)] for _ in range(brRedaka)]
+    smarter_chance = settings.smarter_chance[difficulty]
+    brain_chance = settings.brain_chance[difficulty]
     
     amount = 0
         
@@ -237,7 +314,13 @@ def spawn_zombies():
 
         if maze[x][y] == -1 and maze_zombies_start[x][y] == 0 and min(abs(x - player.pos.y), abs(y - player.pos.x)) > 1:
             added += 1
-            zombies2.append(Zombie(pygame.Vector2(y,x), gridSize * 32 / 64, gridSize * 40 / 64, [0, 0, 0, 0], zombie_png.copy())) # Stvoren novi zombi (pozicija, hitbox height i width, sta je oko njega)
+            rand = random.random()
+            if rand <= smarter_chance:
+                zombies2.append(Smarter(pygame.Vector2(y,x), gridSize * 32 / 64, gridSize * 40 / 64, [0, 0, 0, 0], smarter_png)) # Stvoren novi zombi (pozicija, hitbox height i width, sta je oko njega)
+            elif rand <= smarter_chance + brain_chance:
+                zombies2.append(Brain(pygame.Vector2(y,x), gridSize * 32 / 64, gridSize * 40 / 64, brain_png)) # Stvoren novi zombi (pozicija, hitbox height i width, sta je oko njega)
+            else:
+                zombies2.append(Zombie(pygame.Vector2(y,x), gridSize * 32 / 64, gridSize * 40 / 64, [0, 0, 0, 0], zombie_png)) # Stvoren novi zombi (pozicija, hitbox height i width, sta je oko njega)
             zombies2[-1].rect = pygame.Rect(gridSize * zombies2[-1].pos.x + x, gridSize * zombies2[-1].pos.y + y, zombies2[-1].width, zombies2[-1].height)
             maze_zombies_start[x][y] = 1
         attempts += 1
@@ -300,8 +383,8 @@ def draw():
     # Stavljanje svih entityja u istu listu
     entities = []
 
-    for i in zombies: entities.append(i.copy())
-    entities.append(player.copy())
+    for i in zombies: entities.append(i)
+    entities.append(player)
     
     # Sortiranje da su pravilno posloženi jedan iza drugog zbog perspektive
     entities = sorted(entities, key = lambda entity: entity.pos.y)
@@ -329,12 +412,16 @@ def draw():
   
     # Crtanje entitija
     for entity in entities:
-        game_w.blit(entity.skin, (gridSize * (entity.pos.x - xstart), gridSize * (entity.pos.y - ystart) - 40 / 64 * gridSize))
-  
+        if isinstance(entity, Player):
+            game_w.blit(entity.skin, (gridSize * (entity.pos.x - xstart) - 18 / 64 * gridSize, gridSize * (entity.pos.y - ystart) - 64 / 64 * gridSize))
+        else:
+            game_w.blit(entity.skin, (gridSize * (entity.pos.x - xstart), gridSize * (entity.pos.y - ystart) - 40 / 64 * gridSize))
+
     # Crtanje hitboxova za debugging
-    for zombie in zombies:
+    """for zombie in zombies:
         pygame.draw.rect(game_w, (main.RED), zombie.rect.move(-xstart * gridSize, -ystart * gridSize))
     pygame.draw.rect(game_w, (main.RED), player.rect.move(-xstart * gridSize, -ystart * gridSize))
+    """
 
     # Crtanje buttona
     for i in range(len(buttons)):
@@ -364,6 +451,20 @@ def draw():
     text_rect.topright = (1900, 20)
 
     screen.blit(text, camera.apply(text_rect))
+
+    # WALLPUNCH
+    pygame.draw.rect(screen, (145, 35, 11), camera.apply(wallpunch_empty))
+    height = ((pygame.time.get_ticks() - last_wallpunch) / 1000 ) / settings.wallpunch_time
+    if height > 1: height = 1
+    fill = pygame.Rect(0, 0, 50, 600 * height)
+    fill.bottomleft = (1850, 700)
+    pygame.draw.rect(screen, (241, 193, 10), camera.apply(fill))
+    text = FONT2.render("WALLPUNCH", True, (255, 255, 255))
+    text_surface = pygame.Surface(wallpunch_empty.size)
+    text_surface.blit(text, text_surface.get_rect())
+    pygame.transform.rotate(text_surface, 270)
+    
+    #screen.blit(text_surface, (1850, 100))
 
     # Game windown crtanje
     game_rect = pygame.Rect(0, 0, cam_size.x * gridSize, cam_size.y * gridSize)
@@ -628,24 +729,33 @@ def main2(redak, stupac, active_difficulty):
         # Provjera mogu li se zombiji kretati i smooth kretanje te PROVJERA COLLISIONA sa playerom
         for i,zombie in enumerate(zombies):
 
-            # Provjera
-            for i in range(len(directions)):
-                        check_pos = directions[i]+ zombie.pos
-                        
-                        if 0 <= check_pos.x < brStupaca and 0 <= check_pos.y < brRedaka:
+            if isinstance(zombie, Brain):
+                
+                if (pygame.time.get_ticks() - zombie.last_move_time) / 1000 >= zombie.move_time + zombie.pause_time:
+                    zombie.move(bfs(zombie.pos, player.move_pos))
+                    maze_zombies[int(zombie.last_pos.y)][int(zombie.last_pos.x)] = 0
+                    maze_zombies[int(zombie.move_pos.y)][int(zombie.move_pos.x)] = 1
+                else:
+                    zombie.move(-1)
+    
+            else:
+                for i in range(len(directions)):
+                            check_pos = directions[i]+ zombie.pos
                             
-                            if maze[int(check_pos.y)][int(check_pos.x)] == -1 and maze_zombies[int(check_pos.y)][int(check_pos.x)] == 0:
-                                zombie.around[i] = 0
+                            if 0 <= check_pos.x < brStupaca and 0 <= check_pos.y < brRedaka:
                                 
+                                if maze[int(check_pos.y)][int(check_pos.x)] == -1 and maze_zombies[int(check_pos.y)][int(check_pos.x)] == 0:
+                                    zombie.around[i] = 0
+                                    
+                                else: zombie.around[i] = 1
+
                             else: zombie.around[i] = 1
 
-                        else: zombie.around[i] = 1
-
             
-            # Pomicanje zombija
-            if zombie.move() == "Started":
-                maze_zombies[int(zombie.last_pos.y)][int(zombie.last_pos.x)] = 0
-                maze_zombies[int(zombie.move_pos.y)][int(zombie.move_pos.x)] = 1
+                # Pomicanje zombija
+                if zombie.move() == "Started":
+                    maze_zombies[int(zombie.last_pos.y)][int(zombie.last_pos.x)] = 0
+                    maze_zombies[int(zombie.move_pos.y)][int(zombie.move_pos.x)] = 1
 
             # Provjera collisiona sa playerom
             if (zombie.moving or player.moving) and zombie.rect.colliderect(player.rect):

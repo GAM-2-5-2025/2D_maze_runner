@@ -15,6 +15,7 @@ left = (pygame.K_LEFT, pygame.K_a)
 down = (pygame.K_DOWN, pygame.K_s)
 right = (pygame.K_RIGHT, pygame.K_d)
 input_delay = 0.1
+wallpunch_time = 10
 
 # Zombies
 zombie_move_time = 0.7
@@ -25,5 +26,8 @@ zombie_acceleration = 0.01 # Koliko im puta treba manje da se pomaknu
 
 maze_simpleness = (16, 20, 25) # Čim veće tim teže
 maze_safezone_chance = (0.65, 0.5, 0.35) # Šansa za no zombie zonu
+smarter_chance = (0.25, 0.25, 0.25)
+#brain_chance = (0.01, 0.015, 0.025)
+brain_chance = (0.10, 0.15, 0.20)
 
     
