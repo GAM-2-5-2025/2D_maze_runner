@@ -239,9 +239,13 @@ class Smarter():
                       ]
 
             order = random.sample(list(range(0,4)), 4)
+
+            for i in order:
+                if directions[i] + self.pos == self.last_pos:
+                    order.append(i)
+                    order.remove(i)
             
             for i in order:
-                if directions[i] + self.pos == self.last_pos: continue
                     
                 # Ako ide na prazno polje
                 if self.around[0] == 0 and i == 0:

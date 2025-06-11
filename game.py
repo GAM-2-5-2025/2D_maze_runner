@@ -111,6 +111,7 @@ floor_png = pygame.image.load(os.path.join(os.path.dirname(__file__), "floor2.pn
 door_png = pygame.image.load(os.path.join(os.path.dirname(__file__), "door.png")).convert_alpha()
 no_zombies_png = pygame.image.load(os.path.join(os.path.dirname(__file__), "no_zombies.png")).convert_alpha()
 no_zombies2_png = pygame.image.load(os.path.join(os.path.dirname(__file__), "no_zombies2.png")).convert_alpha()
+punch_png = pygame.image.load(os.path.join(os.path.dirname(__file__), "Punch.png")).convert_alpha()
 
 
 # Mijenjanje veličina tekstura
@@ -121,6 +122,7 @@ for i in range(len(brain_png)): brain_png[i] = pygame.transform.scale(brain_png[
 for i in range(4):
     for j in range(4): player_png[i][j] = pygame.transform.scale(player_png[i][j], (gridSize * 88/64, gridSize * 124/64))
 door_png = pygame.transform.scale(door_png, (gridSize, gridSize))
+punch_png = pygame.transform.scale(punch_png, (gridSize, gridSize))
 no_zombies_png = pygame.transform.scale(no_zombies_png, (gridSize * 74/64, gridSize * 128/64))
 no_zombies2_png = pygame.transform.scale(no_zombies2_png, (gridSize * 106/64, gridSize * 128/64))
 
@@ -149,6 +151,7 @@ door_rect_center = (4.5 * gridSize, 4.5 * gridSize)
 # Player WALLPUNCH
 wallpunch_empty = pygame.Rect(1850, 100, 50, 600)
 last_wallpunch = -settings.wallpunch_time * 1000
+punch_active = False
 
 
 # Ostale postavke
@@ -463,6 +466,9 @@ def draw():
     text_surface = pygame.Surface(wallpunch_empty.size)
     text_surface.blit(text, text_surface.get_rect())
     pygame.transform.rotate(text_surface, 270)
+
+    if punch_active:
+        game_w.blit(punch_png, (gridSize * (player.pos.x - xstart) - 18 / 64 * gridSize, gridSize * (player.pos.y - ystart) - 64 / 64 * gridSize))
     
     #screen.blit(text_surface, (1850, 100))
 
@@ -623,6 +629,7 @@ def main2(redak, stupac, active_difficulty):
     global player, zombies, zombies_start, maze_zombies, inputs, state
     global clock
     global cam_pos, cam_despos
+    global punch_active, last_wallpunch
 
     # Muzikica :D
     pygame.mixer.music.load("Music\\Dummy.mp3")
@@ -694,6 +701,10 @@ def main2(redak, stupac, active_difficulty):
                         print("Back to home screen!")
                         restart()
                         return main.main()
+
+                # WALLPUNCH tipka
+                elif event.key == pygame.K_e and ((pygame.time.get_ticks() - last_wallpunch) / 1000 ) >= settings.wallpunch_time:
+                    punch_active = True
             
             # Mijenjanje veličine ekrana
             elif event.type == pygame.VIDEORESIZE:
@@ -704,7 +715,7 @@ def main2(redak, stupac, active_difficulty):
             
             if 0 <= check_pos.x < brStupaca and 0 <= check_pos.y < brRedaka:
                 
-                if maze[int(check_pos.y)][int(check_pos.x)] < 0:
+                if (maze[int(check_pos.y)][int(check_pos.x)] < 0) or punch_active == True:
                     player.around[i] = 0
                     
                 else: player.around[i] = 1
@@ -712,7 +723,27 @@ def main2(redak, stupac, active_difficulty):
             else: player.around[i] = 1
                 
         
-        player.move(settings.player_move_time, events)
+        if(player.move(settings.player_move_time, events) == "Started" and punch_active == True):
+            punch_active = False
+            last_wallpunch = pygame.time.get_ticks()
+            pygame.mixer.Sound("Music\\Damage.wav").play()
+            x,y = int(player.move_pos.y), int(player.move_pos.x)
+            if maze[x][y] >= 0:
+                maze[x][y]=-1
+                for i in range(4):
+                    r,s = int(x + directions[i].y), int(y + directions[i].x)
+                    if 0<=r<brRedaka  and 0<=s<brStupaca:
+                        if maze[r][s]>=0:
+                            if i == 0:
+                                maze[r][s] -= 2
+                            elif i == 1:
+                                maze[r][s] -= 1
+                            elif i == 2:
+                                maze[r][s] -= 8
+                            else:
+                                maze[r][s] -= 4
+                                
+                                
         
         # Camera positioning
         cam_despos = player.pos.copy()
